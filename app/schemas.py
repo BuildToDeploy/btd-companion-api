@@ -116,3 +116,89 @@ class MonitoringResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Simulation-related schemas
+class SimulationStateAssumption(BaseModel):
+    address: str
+    balance: Optional[str] = None
+    storage_values: Optional[Dict[str, Any]] = None
+    nonce: Optional[int] = None
+
+
+class TransactionSimulationRequest(BaseModel):
+    contract_id: Optional[int] = None
+    source_code: Optional[str] = None
+    calldata: str
+    state_assumptions: Optional[List[SimulationStateAssumption]] = None
+    from_address: Optional[str] = None
+    value: Optional[str] = "0"
+    provider: AIProvider = AIProvider.OPENAI
+
+
+class SimulationFinding(BaseModel):
+    type: str  # execution_failure, unexpected_behavior, optimization_opportunity
+    severity: str
+    description: str
+    line_number: Optional[int] = None
+
+
+class TransactionSimulationResponse(BaseModel):
+    simulation_id: int
+    status: str  # success, reverted, error
+    gas_used: Optional[int]
+    execution_trace: Optional[Dict[str, Any]]
+    findings: List[SimulationFinding]
+    ai_insights: str
+    execution_time_ms: float
+    provider_used: AIProvider
+
+
+class WhatIfScenarioRequest(BaseModel):
+    contract_id: Optional[int] = None
+    source_code: Optional[str] = None
+    scenario_description: str  # e.g., "What if owner changes the fee to 50%?"
+    function_to_test: str
+    initial_state: Dict[str, Any]
+    modified_state: Dict[str, Any]
+    provider: AIProvider = AIProvider.OPENAI
+
+
+class ScenarioAnalysis(BaseModel):
+    scenario_name: str
+    description: str
+    expected_behavior: str
+    actual_behavior: Optional[str]
+    outcome: str  # success, reverted, unexpected
+    ai_analysis: str
+
+
+class WhatIfScenarioResponse(BaseModel):
+    scenarios: List[ScenarioAnalysis]
+    summary: str
+    recommendations: List[str]
+    execution_time_ms: float
+    provider_used: AIProvider
+
+
+class FailurePathRequest(BaseModel):
+    contract_id: Optional[int] = None
+    source_code: Optional[str] = None
+    provider: AIProvider = AIProvider.OPENAI
+
+
+class FailurePathDetail(BaseModel):
+    path_description: str
+    severity: str
+    trigger_conditions: List[str]
+    consequences: List[str]
+    mitigation_steps: List[str]
+    ai_reasoning: str
+
+
+class FailurePathResponse(BaseModel):
+    contract_id: int
+    failure_paths: List[FailurePathDetail]
+    overall_risk_assessment: str
+    execution_time_ms: float
+    provider_used: AIProvider

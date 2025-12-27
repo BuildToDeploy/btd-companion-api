@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import db_manager
 from app.config import get_settings
-from app.routes import contracts, analysis, optimization, deployment, monitoring
+from app.routes import contracts, analysis, optimization, deployment, monitoring, simulation
 import logging
 import sys
 
@@ -56,6 +56,7 @@ def create_app() -> FastAPI:
     app.include_router(optimization.router)
     app.include_router(deployment.router)
     app.include_router(monitoring.router)
+    app.include_router(simulation.router)
     
     @app.get("/health")
     async def health_check():

@@ -23,6 +23,7 @@ class User(Base):
 
     api_requests = relationship("AIRequest", back_populates="user")
     contracts = relationship("Contract", back_populates="user")
+    simulation_results = relationship("SimulationResult", back_populates="user")
 
 
 class APIKey(Base):
@@ -52,6 +53,7 @@ class AIRequest(Base):
     user = relationship("User", back_populates="api_requests")
     contract = relationship("Contract", back_populates="ai_requests")
     result = relationship("AnalysisResult", uselist=False, back_populates="request")
+    simulation_results = relationship("SimulationResult", back_populates="request")
 
 
 class Contract(Base):
@@ -71,6 +73,7 @@ class Contract(Base):
     ai_requests = relationship("AIRequest", back_populates="contract")
     analysis_results = relationship("AnalysisResult", back_populates="contract")
     monitoring = relationship("Monitoring", back_populates="contract")
+    simulation_results = relationship("SimulationResult", back_populates="contract")
 
 
 class AnalysisResult(Base):
@@ -102,3 +105,61 @@ class Monitoring(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     contract = relationship("Contract", back_populates="monitoring")
+
+
+class SimulationResult(Base):
+    __tablename__ = "simulation_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contract_id = Column(Integer, ForeignKey("contracts.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    request_id = Column(Integer, ForeignKey("ai_requests.id"))
+    simulation_type = Column(String)  # transaction, scenario, failure_path
+    calldata = Column(Text)
+    state_assumptions = Column(JSON)
+    result_status = Column(String)  # success, reverted, error, warning
+    gas_used = Column(Integer, nullable=True)
+    execution_trace = Column(JSON, nullable=True)
+    findings = Column(JSON)
+    ai_insights = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    contract = relationship("Contract", foreign_keys=[contract_id])
+    user = relationship("User", foreign_keys=[user_id])
+    request = relationship("AIRequest", foreign_keys=[request_id])
+    scenarios = relationship("SimulationScenario", back_populates="simulation")
+
+
+class SimulationScenario(Base):
+    __tablename__ = "simulation_scenarios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    simulation_id = Column(Integer, ForeignKey("simulation_results.id"))
+    scenario_name = Column(String)  # e.g., "owner_change_scenario"
+    description = Column(Text)
+    initial_state = Column(JSON)
+    modified_state = Column(JSON)
+    expected_behavior = Column(Text)
+    actual_behavior = Column(Text, nullable=True)
+    outcome = Column(String)  # success, reverted, unexpected
+    ai_analysis = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    simulation = relationship("SimulationResult", back_populates="scenarios")
+
+
+class FailurePath(Base):
+    __tablename__ = "failure_paths"
+
+    id = Column(Integer, primary_key=True, index=True)
+    simulation_id = Column(Integer, ForeignKey("simulation_results.id"))
+    contract_id = Column(Integer, ForeignKey("contracts.id"))
+    path_description = Column(Text)
+    severity = Column(String)  # critical, high, medium, low
+    trigger_conditions = Column(JSON)
+    consequences = Column(JSON)
+    mitigation_steps = Column(JSON)
+    ai_reasoning = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    contract = relationship("Contract", foreign_keys=[contract_id])
