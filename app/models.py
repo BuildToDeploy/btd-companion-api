@@ -24,6 +24,7 @@ class User(Base):
     api_requests = relationship("AIRequest", back_populates="user")
     contracts = relationship("Contract", back_populates="user")
     simulation_results = relationship("SimulationResult", back_populates="user")
+    intent_verifications = relationship("IntentVerification", back_populates="user")
 
 
 class APIKey(Base):
@@ -54,6 +55,7 @@ class AIRequest(Base):
     contract = relationship("Contract", back_populates="ai_requests")
     result = relationship("AnalysisResult", uselist=False, back_populates="request")
     simulation_results = relationship("SimulationResult", back_populates="request")
+    intent_verification = relationship("IntentVerification", back_populates="request")
 
 
 class Contract(Base):
@@ -74,6 +76,7 @@ class Contract(Base):
     analysis_results = relationship("AnalysisResult", back_populates="contract")
     monitoring = relationship("Monitoring", back_populates="contract")
     simulation_results = relationship("SimulationResult", back_populates="contract")
+    intent_verifications = relationship("IntentVerification", back_populates="contract")
 
 
 class AnalysisResult(Base):
@@ -128,6 +131,8 @@ class SimulationResult(Base):
     user = relationship("User", foreign_keys=[user_id])
     request = relationship("AIRequest", foreign_keys=[request_id])
     scenarios = relationship("SimulationScenario", back_populates="simulation")
+    failure_paths = relationship("FailurePath", back_populates="simulation")
+    intent_verifications = relationship("IntentVerification", back_populates="simulation")
 
 
 class SimulationScenario(Base):
@@ -163,3 +168,75 @@ class FailurePath(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     contract = relationship("Contract", foreign_keys=[contract_id])
+    simulation = relationship("SimulationResult", back_populates="failure_paths")
+
+
+class IntentVerification(Base):
+    __tablename__ = "intent_verifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contract_id = Column(Integer, ForeignKey("contracts.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    request_id = Column(Integer, ForeignKey("ai_requests.id"), nullable=True)
+    
+    # Intent vs Behavior
+    documented_intent = Column(Text)  # README/comments/NatSpec
+    actual_behavior = Column(Text)  # What code actually does
+    intent_match_score = Column(Integer)  # 0-100, how well they align
+    intent_findings = Column(JSON)  # List of mismatches
+    
+    # Hidden Logic Detection
+    hidden_logic_detected = Column(Boolean, default=False)
+    dead_code_areas = Column(JSON)  # Lines of unused code
+    delayed_execution_logic = Column(JSON)  # Logic that executes later
+    conditional_activation = Column(JSON)  # Conditionally active code
+    
+    # Malicious Pattern Fingerprinting
+    malicious_patterns_found = Column(Boolean, default=False)
+    rug_pull_indicators = Column(JSON)  # List of rug-pull patterns
+    honeypot_indicators = Column(JSON)  # List of honeypot patterns
+    malicious_risk_score = Column(Integer)  # 0-100
+    
+    overall_trust_score = Column(Integer)  # 0-100
+    ai_recommendation = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    contract = relationship("Contract", foreign_keys=[contract_id])
+    user = relationship("User", foreign_keys=[user_id])
+    request = relationship("AIRequest", foreign_keys=[request_id])
+    simulation = relationship("SimulationResult", back_populates="intent_verifications")
+    hidden_logic_details = relationship("HiddenLogicDetail", back_populates="intent_verification")
+    malicious_patterns = relationship("MaliciousPattern", back_populates="intent_verification")
+
+
+class HiddenLogicDetail(Base):
+    __tablename__ = "hidden_logic_details"
+
+    id = Column(Integer, primary_key=True, index=True)
+    intent_verification_id = Column(Integer, ForeignKey("intent_verifications.id"))
+    logic_type = Column(String)  # dead_code, delayed_execution, conditional
+    description = Column(Text)
+    location = Column(String)  # Function/contract area where found
+    line_numbers = Column(JSON)
+    risk_level = Column(String)  # critical, high, medium, low, informational
+    explanation = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    intent_verification = relationship("IntentVerification", back_populates="hidden_logic_details")
+
+
+class MaliciousPattern(Base):
+    __tablename__ = "malicious_patterns"
+
+    id = Column(Integer, primary_key=True, index=True)
+    intent_verification_id = Column(Integer, ForeignKey("intent_verifications.id"))
+    pattern_type = Column(String)  # rug_pull, honeypot, etc
+    pattern_name = Column(String)  # e.g., "liquidity_lock_bypass", "unfair_tax"
+    description = Column(Text)
+    indicators = Column(JSON)  # Array of indicators found
+    affected_functions = Column(JSON)
+    severity = Column(String)  # critical, high, medium, low
+    ai_reasoning = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    intent_verification = relationship("IntentVerification", back_populates="malicious_patterns")

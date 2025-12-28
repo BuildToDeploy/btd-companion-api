@@ -202,3 +202,73 @@ class FailurePathResponse(BaseModel):
     overall_risk_assessment: str
     execution_time_ms: float
     provider_used: AIProvider
+
+
+# Contract Intent Verification schemas
+class IntentVerificationRequest(BaseModel):
+    contract_id: Optional[int] = None
+    source_code: Optional[str] = None
+    contract_name: Optional[str] = None
+    readme_or_comments: Optional[str] = None
+    provider: AIProvider = AIProvider.OPENAI
+
+
+class HiddenLogicDetailResponse(BaseModel):
+    logic_type: str
+    description: str
+    location: str
+    line_numbers: List[int]
+    risk_level: str
+    explanation: str
+
+    class Config:
+        from_attributes = True
+
+
+class MaliciousPatternResponse(BaseModel):
+    pattern_type: str
+    pattern_name: str
+    description: str
+    indicators: List[str]
+    affected_functions: List[str]
+    severity: str
+    ai_reasoning: str
+
+    class Config:
+        from_attributes = True
+
+
+class IntentVsBehaviorAnalysis(BaseModel):
+    documented_intent: str
+    actual_behavior: str
+    intent_match_score: int  # 0-100
+    mismatches: List[str]
+
+
+class HiddenLogicAnalysis(BaseModel):
+    hidden_logic_detected: bool
+    dead_code_areas: List[HiddenLogicDetailResponse]
+    delayed_execution_logic: List[HiddenLogicDetailResponse]
+    conditional_activation: List[HiddenLogicDetailResponse]
+
+
+class MaliciousPatternAnalysis(BaseModel):
+    malicious_patterns_found: bool
+    rug_pull_indicators: List[MaliciousPatternResponse]
+    honeypot_indicators: List[MaliciousPatternResponse]
+    malicious_risk_score: int  # 0-100
+
+
+class IntentVerificationResponse(BaseModel):
+    verification_id: int
+    contract_id: int
+    intent_analysis: IntentVsBehaviorAnalysis
+    hidden_logic_analysis: HiddenLogicAnalysis
+    malicious_pattern_analysis: MaliciousPatternAnalysis
+    overall_trust_score: int  # 0-100
+    ai_recommendation: str
+    execution_time_ms: float
+    provider_used: AIProvider
+
+    class Config:
+        from_attributes = True
