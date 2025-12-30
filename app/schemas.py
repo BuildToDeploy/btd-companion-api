@@ -272,3 +272,87 @@ class IntentVerificationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# X402 payment schemas
+class X402PaymentRequest(BaseModel):
+    network: str = "solana"  # solana, solana-devnet, base, polygon, xlayer, sei
+    tier: str = "basic"  # free, basic, pro, enterprise
+    amount_lamports: int
+    contract_id: Optional[int] = None
+
+
+class X402PaymentResponse(BaseModel):
+    payment_id: int
+    transaction_hash: str
+    network: str
+    amount_lamports: int
+    amount_usd: Optional[float]
+    payer_address: str
+    payment_status: str
+    tier: str
+    access_level: int
+    features_unlocked: List[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class X402SubscriptionTier(BaseModel):
+    tier: str  # basic, pro, enterprise
+    monthly_price_lamports: int
+    monthly_price_usd: float
+    features: List[str]
+    api_calls_limit: int
+    priority_support: bool
+    description: str
+
+
+class X402SubscriptionRequest(BaseModel):
+    tier: str  # basic, pro, enterprise
+    network: str = "solana"
+    auto_renew: bool = True
+
+
+class X402SubscriptionResponse(BaseModel):
+    subscription_id: int
+    tier: str
+    status: str
+    next_billing_date: Optional[datetime]
+    monthly_price_lamports: int
+    monthly_price_usd: float
+    features: List[str]
+    api_calls_limit: int
+    monthly_calls_used: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class X402AccessLogResponse(BaseModel):
+    access_id: int
+    endpoint: str
+    feature_accessed: str
+    tokens_used: Optional[int]
+    execution_time_ms: float
+    success: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class X402PaymentVerificationRequest(BaseModel):
+    transaction_hash: str
+    network: str = "solana"
+
+
+class X402PaymentVerificationResponse(BaseModel):
+    is_valid: bool
+    status: str
+    confirmed_at: Optional[datetime]
+    tier: str
+    access_level: int
+    message: str

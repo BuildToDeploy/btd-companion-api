@@ -25,6 +25,8 @@ class User(Base):
     contracts = relationship("Contract", back_populates="user")
     simulation_results = relationship("SimulationResult", back_populates="user")
     intent_verifications = relationship("IntentVerification", back_populates="user")
+    x402_payments = relationship("X402Payment", back_populates="user")
+    x402_subscriptions = relationship("X402Subscription", back_populates="user")
 
 
 class APIKey(Base):
@@ -77,6 +79,7 @@ class Contract(Base):
     monitoring = relationship("Monitoring", back_populates="contract")
     simulation_results = relationship("SimulationResult", back_populates="contract")
     intent_verifications = relationship("IntentVerification", back_populates="contract")
+    x402_payments = relationship("X402Payment", back_populates="contract")
 
 
 class AnalysisResult(Base):
@@ -240,3 +243,90 @@ class MaliciousPattern(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     intent_verification = relationship("IntentVerification", back_populates="malicious_patterns")
+
+
+class X402Payment(Base):
+    __tablename__ = "x402_payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=True)
+    
+    # Payment details
+    transaction_hash = Column(String, unique=True, index=True)
+    network = Column(String)  # solana, solana-devnet, base, polygon, etc
+    amount_lamports = Column(Integer)  # For Solana: 1 SOL = 1,000,000,000 lamports
+    amount_usd = Column(Float, nullable=True)
+    payer_address = Column(String, index=True)
+    receiver_address = Column(String)
+    
+    # Payment status and access control
+    payment_status = Column(String, default="pending")  # pending, confirmed, failed, refunded
+    tier = Column(String)  # free, basic, pro, enterprise
+    access_level = Column(Integer)  # 0=free, 1=basic, 2=pro, 3=enterprise
+    features_unlocked = Column(JSON)  # List of unlocked features
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    confirmed_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)  # For subscription-based access
+    
+    user = relationship("User", foreign_keys=[user_id])
+    contract = relationship("Contract", foreign_keys=[contract_id])
+    access_logs = relationship("X402AccessLog", back_populates="payment")
+
+
+class X402Subscription(Base):
+    __tablename__ = "x402_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
+    # Subscription details
+    tier = Column(String)  # basic, pro, enterprise
+    recurring_payment_hash = Column(String, nullable=True)
+    network = Column(String)  # solana, solana-devnet, base, polygon, etc
+    
+    # Pricing
+    monthly_price_lamports = Column(Integer)
+    monthly_price_usd = Column(Float, nullable=True)
+    
+    # Status
+    status = Column(String, default="active")  # active, paused, cancelled
+    next_billing_date = Column(DateTime, nullable=True)
+    auto_renew = Column(Boolean, default=True)
+    
+    # Features included
+    features = Column(JSON)  # List of features available
+    api_calls_limit = Column(Integer, default=10000)
+    monthly_calls_used = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", foreign_keys=[user_id])
+    payments = relationship("X402Payment", foreign_keys="X402Subscription.id")
+
+
+class X402AccessLog(Base):
+    __tablename__ = "x402_access_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    payment_id = Column(Integer, ForeignKey("x402_payments.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
+    # Access details
+    endpoint = Column(String)  # e.g., /api/verify/intent, /api/simulate/failure-paths
+    feature_accessed = Column(String)
+    request_type = Column(String)  # analyze, optimize, simulate, verify
+    
+    # Request details
+    tokens_used = Column(Integer, nullable=True)
+    execution_time_ms = Column(Float)
+    success = Column(Boolean, default=True)
+    error_message = Column(String, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    payment = relationship("X402Payment", back_populates="access_logs")
+    user = relationship("User", foreign_keys=[user_id])

@@ -19,17 +19,15 @@ BTD Companion is an open-source platform that empowers developers to analyze, op
 
   
 
--  **AI-Powered Analysis** - Multi-provider AI support (OpenAI, Claude, Grok) with automatic fallback logic
-
--  **Contract Optimization** - Get intelligent suggestions to improve gas efficiency and security
-
--  **Real-Time Monitoring** - Track deployed contracts and monitor on-chain activity
-
--  **Self-Hosted** - Complete control over your data and infrastructure
-
--  **Community-Driven** - Open-source and ready for contributions
-
--  **Production-Ready** - FastAPI backend with PostgreSQL persistence, Docker deployment, and comprehensive error handling
+- **AI-Powered Analysis** - Multi-provider AI support (OpenAI, Claude, Grok) with automatic fallback logic
+- **Contract Optimization** - Get intelligent suggestions to improve gas efficiency and security
+- **Real-Time Monitoring** - Track deployed contracts and monitor on-chain activity
+- **Simulation & Testing** - Simulate transactions, explore what-if scenarios, and discover failure paths
+- **Intent Verification** - Detect malicious patterns, hidden logic, and rug-pull indicators
+- **Solana Payments** - Monetize API access with x402 protocol integration for decentralized payments
+- **Self-Hosted** - Complete control over your data and infrastructure
+- **Community-Driven** - Open-source and ready for contributions
+- **Production-Ready** - FastAPI backend with PostgreSQL persistence, Docker deployment, and comprehensive error handling
 
   
 

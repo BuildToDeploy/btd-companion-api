@@ -7,10 +7,14 @@ class Settings(BaseSettings):
     # Database
     database_url: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost/btd_companion")
     
-    # API Keys
+    # AI Providers
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
     xai_api_key: str = os.getenv("XAI_API_KEY", "")
+    
+    x402_receiver_address: str = os.getenv("X402_RECEIVER_ADDRESS", "")
+    x402_enabled: bool = os.getenv("X402_ENABLED", "True").lower() == "true"
+    x402_testnet: bool = os.getenv("X402_TESTNET", "True").lower() == "true"
     
     # App Settings
     app_name: str = "BTD Companion"
