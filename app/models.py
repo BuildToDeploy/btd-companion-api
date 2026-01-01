@@ -11,6 +11,45 @@ class AIProvider(str, enum.Enum):
     GROK = "grok"
 
 
+class Blockchain(str, enum.Enum):
+    """Supported blockchains"""
+    # EVM chains
+    ETHEREUM = "ethereum"
+    POLYGON = "polygon"
+    ARBITRUM = "arbitrum"
+    BASE = "base"
+    XLAYER = "xlayer"
+    
+    # Non-EVM chains
+    SOLANA = "solana"
+    COSMOS = "cosmos"
+    ALGORAND = "algorand"
+    APTOS = "aptos"
+    SUI = "sui"
+    PEAQ = "peaq"
+    SEI = "sei"
+
+
+class SmartContractLanguage(str, enum.Enum):
+    """Supported smart contract languages"""
+    # EVM
+    SOLIDITY = "solidity"
+    VYPER = "vyper"
+    
+    # Solana
+    RUST = "rust"
+    
+    # Cosmos
+    COSMWASM = "cosmwasm"
+    
+    # Algorand
+    TEAL = "teal"
+    PYTEAL = "pyteal"
+    
+    # Aptos/Sui
+    MOVE = "move"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -80,6 +119,7 @@ class Contract(Base):
     simulation_results = relationship("SimulationResult", back_populates="contract")
     intent_verifications = relationship("IntentVerification", back_populates="contract")
     x402_payments = relationship("X402Payment", back_populates="contract")
+    multi_chain_contracts = relationship("MultiChainContract", back_populates="contract")
 
 
 class AnalysisResult(Base):
@@ -330,3 +370,159 @@ class X402AccessLog(Base):
     
     payment = relationship("X402Payment", back_populates="access_logs")
     user = relationship("User", foreign_keys=[user_id])
+
+
+class MultiChainContract(Base):
+    """Extended contract model for multi-chain support"""
+    __tablename__ = "multi_chain_contracts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contract_id = Column(Integer, ForeignKey("contracts.id"), index=True)
+    
+    # Multi-chain details
+    blockchain = Column(Enum(Blockchain), index=True)
+    language = Column(Enum(SmartContractLanguage))
+    contract_address = Column(String, nullable=True, index=True)
+    
+    # Language-specific metadata
+    abi_json = Column(JSON, nullable=True)  # For EVM contracts
+    idl_json = Column(JSON, nullable=True)  # For Solana IDL
+    move_module_name = Column(String, nullable=True)  # For Move contracts
+    
+    # Analysis metadata
+    bytecode = Column(Text, nullable=True)
+    deployment_tx = Column(String, nullable=True)
+    compiler_version = Column(String, nullable=True)
+    optimization_enabled = Column(Boolean, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    contract = relationship("Contract", foreign_keys=[contract_id])
+    move_analysis = relationship("MoveLanguageAnalysis", back_populates="multi_chain_contract", cascade="all, delete-orphan")
+    cosmwasm_analysis = relationship("CosmwasmAnalysis", back_populates="multi_chain_contract", cascade="all, delete-orphan")
+    teal_analysis = relationship("TEALAnalysis", back_populates="multi_chain_contract", cascade="all, delete-orphan")
+    circuit_analysis = relationship("CircuitAnalysis", back_populates="multi_chain_contract", cascade="all, delete-orphan")
+
+
+class MoveLanguageAnalysis(Base):
+    """Analysis results for Move language (Aptos/Sui)"""
+    __tablename__ = "move_language_analysis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    multi_chain_contract_id = Column(Integer, ForeignKey("multi_chain_contracts.id"))
+    request_id = Column(Integer, ForeignKey("ai_requests.id"), nullable=True)
+    
+    # Move-specific analysis
+    modules_found = Column(JSON)  # List of module names
+    abilities_used = Column(JSON)  # copy, drop, store, key
+    resource_patterns = Column(JSON)  # Identified resource patterns
+    type_parameters = Column(JSON)  # Generic type usage
+    
+    # Move safety concerns
+    safety_issues = Column(JSON)
+    reentrancy_risks = Column(JSON)
+    resource_leaks_found = Column(Boolean, default=False)
+    
+    findings = Column(JSON)
+    risk_score = Column(Integer, nullable=True)
+    ai_insights = Column(Text, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    multi_chain_contract = relationship("MultiChainContract", back_populates="move_analysis")
+    request = relationship("AIRequest", foreign_keys=[request_id])
+
+
+class CosmwasmAnalysis(Base):
+    """Analysis results for CosmWasm (Cosmos ecosystem)"""
+    __tablename__ = "cosmwasm_analysis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    multi_chain_contract_id = Column(Integer, ForeignKey("multi_chain_contracts.id"))
+    request_id = Column(Integer, ForeignKey("ai_requests.id"), nullable=True)
+    
+    # CosmWasm-specific analysis
+    entry_points = Column(JSON)  # instantiate, execute, query, migrate, reply
+    message_types = Column(JSON)  # ExecuteMsg, QueryMsg, etc.
+    state_structure = Column(JSON)  # Contract state layout
+    cw_standards_used = Column(JSON)  # CW20, CW721, etc.
+    
+    # Cosmos-specific concerns
+    ibc_integration = Column(Boolean, default=False)
+    cross_chain_risks = Column(JSON)
+    state_consistency_issues = Column(JSON)
+    
+    findings = Column(JSON)
+    risk_score = Column(Integer, nullable=True)
+    ai_insights = Column(Text, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    multi_chain_contract = relationship("MultiChainContract", back_populates="cosmwasm_analysis")
+    request = relationship("AIRequest", foreign_keys=[request_id])
+
+
+class TEALAnalysis(Base):
+    """Analysis results for TEAL/PyTeal (Algorand)"""
+    __tablename__ = "teal_analysis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    multi_chain_contract_id = Column(Integer, ForeignKey("multi_chain_contracts.id"))
+    request_id = Column(Integer, ForeignKey("ai_requests.id"), nullable=True)
+    
+    # TEAL-specific analysis
+    is_stateful = Column(Boolean)
+    is_stateless = Column(Boolean)
+    global_state_keys = Column(JSON)
+    local_state_keys = Column(JSON)
+    abi_methods = Column(JSON)
+    
+    # Algorand-specific concerns
+    stack_depth_issues = Column(JSON)
+    transaction_group_risks = Column(JSON)
+    inner_transaction_usage = Column(JSON)
+    atomic_transaction_safety = Column(JSON)
+    
+    findings = Column(JSON)
+    risk_score = Column(Integer, nullable=True)
+    ai_insights = Column(Text, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    multi_chain_contract = relationship("MultiChainContract", back_populates="teal_analysis")
+    request = relationship("AIRequest", foreign_keys=[request_id])
+
+
+class CircuitAnalysis(Base):
+    """Analysis results for zkSNARK/Circuit verification"""
+    __tablename__ = "circuit_analysis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    multi_chain_contract_id = Column(Integer, ForeignKey("multi_chain_contracts.id"))
+    request_id = Column(Integer, ForeignKey("ai_requests.id"), nullable=True)
+    
+    # Circuit analysis
+    circuit_framework = Column(String)  # circom, noir, halo2, plonk, etc
+    number_of_constraints = Column(Integer, nullable=True)
+    number_of_signals = Column(Integer, nullable=True)
+    number_of_public_inputs = Column(Integer, nullable=True)
+    
+    # ZK-specific security
+    soundness_issues = Column(JSON)  # Potential soundness flaws
+    completeness_verified = Column(Boolean, nullable=True)
+    witness_generation_safety = Column(JSON)
+    trusted_setup_requirements = Column(JSON)
+    
+    # Proof system analysis
+    proof_system_type = Column(String)  # groth16, plonk, snark, stark, etc
+    verification_key_analysis = Column(JSON)
+    
+    findings = Column(JSON)
+    risk_score = Column(Integer, nullable=True)
+    ai_insights = Column(Text, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    multi_chain_contract = relationship("MultiChainContract", back_populates="circuit_analysis")
+    request = relationship("AIRequest", foreign_keys=[request_id])

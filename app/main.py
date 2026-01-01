@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import db_manager
 from app.config import get_settings
-from app.routes import contracts, analysis, optimization, deployment, monitoring, simulation, intent_verification, x402_payments
+from app.routes import contracts, analysis, optimization, deployment, monitoring, simulation, intent_verification, x402_payments, multi_chain
 import logging
 import sys
 
@@ -59,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(simulation.router)
     app.include_router(intent_verification.router)
     app.include_router(x402_payments.router)
+    app.include_router(multi_chain.router)
     
     @app.get("/health")
     async def health_check():
